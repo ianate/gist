@@ -45,8 +45,11 @@ class Element{
  */
 public class AmarkUpParser {
 
-	private static final Pattern oneShortTag = Pattern.compile("(<(\\w+)([^(/>)]*)/>)(.*)");//$1 whole tag;$2 name;$3 options;$4 rest;
-	private static final Pattern tag = Pattern.compile("<(\\w+)([^>]*)>(.*)(</\\1>)(.*)");
+	private static final Pattern oneShortTag = Pattern.compile("\\G(<(\\w+)([^(/>)]*)/>)");//$1 whole tag;$2 name;$3 options;$4 rest;
+	private static final Pattern tag = Pattern.compile("\\G<((\\w+)([^>]*)>(.*)</\\1>)");
+	private static final Pattern multiTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>|/>)]*(</\\1>)(.*)</\\1>");
+	private static final Pattern nestTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>)]*<(\\w+)([^>]*)>.*</\\1>");
+	
 	private static final Pattern exception = Pattern.compile("</\\s*br>");
 	
 	private boolean isNullOrEmpty(String str) {return str == null || "".equals(str.trim());}
@@ -61,23 +64,20 @@ public class AmarkUpParser {
 			if(!isNullOrEmpty(name)){//illegal if no name
 				element = new Element();
 				element.setName(name);
-				String proString = shortMatcher.group(3).trim();
-				if(!isNullOrEmpty(proString)){
-					String[] properties = proString.split("\\s+");
-					Map<String, String> map = new HashMap<String, String>();
-					for(String property : properties){
-						String[] pair = property.split("=");
-						String key = pair[0];
-						String val = pair[1];
-						map.put(key, val);
-					}
+				String property = shortMatcher.group(3).trim();
+				if(!isNullOrEmpty(property)){
+					Map<String, String> map = parseProperty(property);
 					element.setProperty(map);
 				}
 			}
 		}else if(tagMatcher.matches()){
-			if(){//multi
+			Matcher multiMatcher = multiTag.matcher(text);
+			Matcher nestMatcher = nestTag.matcher(text);
+			if(multiMatcher.matches()){//multi
 				
-			}else if(){//nest
+			}else if(nestMatcher.matches()){//nest
+				
+			}else{//one tag
 				
 			}
 		}
@@ -85,24 +85,36 @@ public class AmarkUpParser {
 		return element;
 	}
 	
+	private Map<String, String> parseProperty(String str){
+		String[] properties = str.split("\\s+");
+		Map<String, String> map = new HashMap<String, String>();
+		for(String property : properties){
+			String[] pair = property.split("=");
+			String key = pair[0];
+			String val = pair[1];
+			map.put(key, val);
+		}
+		return map;
+	}
+	
 	public static void main(String[] args){
 		/*System.out.println("<h1></h1><h1 qwe />".matches("<\\w+([^(/>)]*)/>"));
-		System.out.println("<h1></h1><h1 qwe />".matches(tag));
-		System.out.println("<h1 qwe /><h1></h1><h1 qwe />".matches(oneShortTag));
-		Pattern p = Pattern.compile(tag);
-		Matcher m = p.matcher("<h1></h1><h1 qwe />");
+		System.out.println("<h1></h1><h1 qwe />".matches(tag.pattern()));
+		System.out.println("<h1 qwe /><h1></h1><h1 qwe />".matches(oneShortTag.pattern()));
+*/
+		Matcher m = tag.matcher("<h1></h1><h1 qwe />");
 		System.out.println("--");
-		if(m.matches()){
-			System.out.println(m.group(4));
+		if(m.find()){
+			System.out.println(m.group(3));
 		}
-		m = p.matcher("<h1></h1><h1></h1>");
+		m = tag.matcher("<h1></h1><h1></h1>");
 		System.out.println("--");
-		if(m.matches()){
-			System.out.println(m.group(4));
-		}*/
-		String a = " a  b c";
+		if(m.find()){
+			System.out.println(m.group(3));
+		}
+		/*String a = " a  b c";
 		String[] array = a.split("\\s+");
-		System.out.println(array.length);
+		System.out.println(array.length);*/
 	}
 	
 	
