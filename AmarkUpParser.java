@@ -45,20 +45,21 @@ class Element{
  */
 public class AmarkUpParser {
 
-	private static final Pattern oneShortTag = Pattern.compile("\\G(<(\\w+)([^(/>)]*)/>)");//$1 whole tag;$2 name;$3 options;$4 rest;
-	private static final Pattern tag = Pattern.compile("\\G<((\\w+)([^>]*)>(.*)</\\1>)");
+	private static final Pattern SHORT_TAG = Pattern.compile("\\G(<(\\w+)([^(/>)]*)/>)");//$1 whole tag;$2 name;$3 options;$4 rest;
+	/*private static final Pattern tag = Pattern.compile("\\G<((\\w+)([^>]*)>(.*)</\\1>)");
 	private static final Pattern multiTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>|/>)]*(</\\1>)(.*)</\\1>");
-	private static final Pattern nestTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>)]*<(\\w+)([^>]*)>.*</\\1>");
-	
-	private static final Pattern exception = Pattern.compile("</\\s*br>");
+	private static final Pattern nestTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>)]*<(\\w+)([^>]*)>.*</\\1>");*/
+	private static final Pattern TAG = Pattern.compile("<(\\w+)>(.*?)</\\s*\\1>");
+	@Deprecated
+	private static final Pattern exception = Pattern.compile("</\\s*br>");//mistake.a <br /> matches short tag
 	
 	private boolean isNullOrEmpty(String str) {return str == null || "".equals(str.trim());}
 	
 	public Element parseOneTag(String text){
 		if(isNullOrEmpty(text)) return null;
 		Element element = null;
-		Matcher shortMatcher = oneShortTag.matcher(text);
-		Matcher tagMatcher =  tag.matcher(text);
+		Matcher shortMatcher = SHORT_TAG.matcher(text);
+		Matcher tagMatcher =  TAG.matcher(text);
 		if(shortMatcher.matches()){//short tag; no property; no subElements
 			String name = shortMatcher.group(2);
 			if(!isNullOrEmpty(name)){//illegal if no name
@@ -71,13 +72,15 @@ public class AmarkUpParser {
 				}
 			}
 		}else if(tagMatcher.matches()){
-			Matcher multiMatcher = multiTag.matcher(text);
-			Matcher nestMatcher = nestTag.matcher(text);
-			if(multiMatcher.matches()){//multi
+			String tagName = tagMatcher.group(1);
+			String content = tagMatcher.group(2);//.*?		not-null
+			int openTags =  countAppearance(content, "<" + tagName + ">");
+			int shortCloseTags;//TODO
+			if(openTags == 0){//one
 				
-			}else if(nestMatcher.matches()){//nest
+			}else if(openTags - shortCloseTags == 0){//nest but all closed
 				
-			}else{//one tag
+			}else{//nest and ask more to be a tag. (open and close mismatch)
 				
 			}
 		}
@@ -97,25 +100,10 @@ public class AmarkUpParser {
 		return map;
 	}
 	
-	public static void main(String[] args){
-		/*System.out.println("<h1></h1><h1 qwe />".matches("<\\w+([^(/>)]*)/>"));
-		System.out.println("<h1></h1><h1 qwe />".matches(tag.pattern()));
-		System.out.println("<h1 qwe /><h1></h1><h1 qwe />".matches(oneShortTag.pattern()));
-*/
-		Matcher m = tag.matcher("<h1></h1><h1 qwe />");
-		System.out.println("--");
-		if(m.find()){
-			System.out.println(m.group(3));
-		}
-		m = tag.matcher("<h1></h1><h1></h1>");
-		System.out.println("--");
-		if(m.find()){
-			System.out.println(m.group(3));
-		}
-		/*String a = " a  b c";
-		String[] array = a.split("\\s+");
-		System.out.println(array.length);*/
+	private int countAppearance(String source, String toCount){
+		int count = 0;
+		//TODO:count appearance
+		return count;
 	}
-	
 	
 }
