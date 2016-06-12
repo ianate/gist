@@ -46,12 +46,8 @@ class Element{
 public class AmarkUpParser {
 
 	private static final Pattern SHORT_TAG = Pattern.compile("\\G(<(\\w+)([^(/>)]*)/>)");//$1 whole tag;$2 name;$3 options;$4 rest;
-	/*private static final Pattern tag = Pattern.compile("\\G<((\\w+)([^>]*)>(.*)</\\1>)");
-	private static final Pattern multiTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>|/>)]*(</\\1>)(.*)</\\1>");
-	private static final Pattern nestTag = Pattern.compile("\\G<(\\w+)([^>]*)>[^(</\\1>)]*<(\\w+)([^>]*)>.*</\\1>");*/
 	private static final Pattern TAG = Pattern.compile("<(\\w+)>(.*?)</\\s*\\1>");
-	@Deprecated
-	private static final Pattern exception = Pattern.compile("</\\s*br>");//mistake.a <br /> matches short tag
+	private static final Pattern TAG_CONTENT = Pattern.compile("?<:>([^<]+)?:<.*?");
 	
 	private boolean isNullOrEmpty(String str) {return str == null || "".equals(str.trim());}
 	
@@ -75,12 +71,22 @@ public class AmarkUpParser {
 			String tagName = tagMatcher.group(1);
 			String content = tagMatcher.group(2);//.*?		not-null
 			int openTags =  countAppearance(content, "<" + tagName + ">");
-			int shortCloseTags;//TODO
+			Pattern certainShort = Pattern.compile(".*<" + tagName + "([^(/>)]*)/>(.*?)");
+			int shortCloseTags = countPatternAppearance(certainShort, content, 0);
 			if(openTags == 0){//one
-				
+				element = new Element();
+				element.setName(tagName);
+				Map<String, String> property = parseProperty(content);
+				element.setProperty(property);
 			}else if(openTags - shortCloseTags == 0){//nest but all closed
-				
-			}else{//nest and ask more to be a tag. (open and close mismatch)
+				element = new Element();
+				element.setName(tagName);
+				Matcher contentMatcher = TAG_CONTENT.matcher(content);
+				if(contentMatcher.matches()){
+					element.setContent(contentMatcher.group(1));
+				}
+				//TODO:
+			}else{//nest and need supplement to be a complete tag. (open and close mismatch)
 				
 			}
 		}
@@ -101,9 +107,34 @@ public class AmarkUpParser {
 	}
 	
 	private int countAppearance(String source, String toCount){
+		char[] src = source.toCharArray();
+		char[] toCnt = toCount.toCharArray();
+		
 		int count = 0;
-		//TODO:count appearance
+		for(int i = 0; i < src.length; i ++){
+			if(src[i] == toCnt[0]){
+				if(toCnt.length == 1){
+					count ++;
+				}else{
+					boolean toAdd = true;
+					for(int j = 1; j < toCnt.length; j ++){
+						if(src[i + j] != toCnt[j]){
+							toAdd = false;
+							break;
+						}
+					}
+					if(toAdd) count ++;
+				}
+			}
+		}
 		return count;
 	}
 	
+	private int countPatternAppearance(Pattern p, String text, int counted){
+		Matcher m = p.matcher(text);
+		if(m.matches()){
+			return countPatternAppearance(p, m.group(2), counted);
+		}
+		return counted;
+	}
 }
